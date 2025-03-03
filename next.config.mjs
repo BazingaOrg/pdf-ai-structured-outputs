@@ -21,6 +21,28 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  webpack: (config) => {
+    const oneOfRule = config.module.rules.find(
+      (rule) => typeof rule.oneOf === "object"
+    );
+
+    if (oneOfRule) {
+      const cssRule = oneOfRule.oneOf.find(
+        (rule) => rule.test && rule.test.toString().includes("css")
+      );
+
+      if (cssRule) {
+        cssRule.use.push({
+          loader: "postcss-loader",
+          options: {
+            sourceMap: true,
+          },
+        });
+      }
+    }
+
+    return config;
+  },
   async rewrites() {
     return [
       {
