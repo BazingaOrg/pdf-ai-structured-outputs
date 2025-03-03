@@ -1,4 +1,12 @@
 import type { Config } from "tailwindcss";
+import fs from "fs";
+import path from "path";
+
+// 读取safelist文件
+const safelist = fs
+  .readFileSync(path.join(process.cwd(), "safelist.txt"), "utf8")
+  .split("\n")
+  .filter(Boolean);
 
 const config: Config = {
   darkMode: ["class"],
@@ -6,8 +14,12 @@ const config: Config = {
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./lib/**/*.{js,ts,jsx,tsx,mdx}",
+    "./hooks/**/*.{js,ts,jsx,tsx,mdx}",
+    "./styles/**/*.{js,ts,jsx,tsx,css}",
     "./*.{js,ts,jsx,tsx,mdx}",
   ],
+  safelist,
   theme: {
     extend: {
       colors: {
