@@ -1,89 +1,90 @@
-# PDF Structured Data Extraction
+# PDF 结构化数据提取
 
-A web application for extracting structured data from PDF files using Google's Gemini Pro AI model.
+一个使用 Google Gemini Pro AI 模型从 PDF 文件中提取结构化数据的 Web 应用程序。
 
-## 🌟 Features
+## 🌟 功能特点
 
-- 📄 Extract structured data from PDF files
-- 🎯 Customizable extraction configurations
-- 🔄 Support for multiple file processing
-- 📊 Export results in multiple formats (Excel, JSON, CSV)
-- 🌓 Dark/Light theme support
-- 📱 Responsive design
-- 🚀 Real-time processing progress
+- 📄 从 PDF 文件中提取结构化数据
+- 🎯 可自定义的提取配置
+- 🔄 支持多文件批量处理
+- 📊 支持多种格式导出结果（Excel、JSON、CSV）
+- 🌓 深色/浅色主题支持
+- 📱 响应式设计，适配移动设备
+- 🚀 实时处理进度显示
+- 🌐 完整的中文界面支持
 
-## 🛠️ Tech Stack
+## 🛠️ 技术栈
 
-- [Next.js 14](https://nextjs.org/) - React Framework
-- [Tailwind CSS](https://tailwindcss.com/) - CSS Framework
-- [Shadcn/ui](https://ui.shadcn.com/) - UI Components
-- [Google Gemini Pro](https://deepmind.google/technologies/gemini/) - AI Model
-- [Framer Motion](https://www.framer.com/motion/) - Animation Library
-- [Tanstack Table](https://tanstack.com/table) - Table Component
-- [XLSX](https://www.npmjs.com/package/xlsx) - Excel Export
+- [Next.js 14](https://nextjs.org/) - React 框架
+- [Tailwind CSS](https://tailwindcss.com/) - CSS 框架
+- [Shadcn/ui](https://ui.shadcn.com/) - UI 组件库
+- [Google Gemini 2.0 Flash](https://deepmind.google/technologies/gemini/) - AI 模型
+- [Framer Motion](https://www.framer.com/motion/) - 动画库
+- [Tanstack Table](https://tanstack.com/table) - 表格组件
+- [XLSX](https://www.npmjs.com/package/xlsx) - Excel 导出
 
-## 🚀 Getting Started
+## 🚀 快速开始
 
-1. Clone the repository:
+1. 克隆仓库:
 
 ```bash
-git clone https://github.com/yourusername/pdf-structured-extraction.git
+git clone https://github.com/yourusername/pdf-ai-structured-outputs.git
 ```
 
-2. Install dependencies:
+2. 安装依赖:
 
 ```bash
 npm install
-or
+# 或
 yarn install
-or
+# 或
 pnpm install
 ```
 
-3. Create a `.env.local` file and add your Google API key:
+3. 创建`.env.local`文件并添加你的 Google API 密钥:
 
-```env:README.md
+```env
 GOOGLE_API_KEY=your_api_key_here
 ```
 
-4. Run the development server:
+4. 运行开发服务器:
 
 ```bash
 npm run dev
 ```
 
-5. Open [http://localhost:3000](http://localhost:3000) with your browser.
+5. 在浏览器中打开[http://localhost:3000](http://localhost:3000)。
 
-## 📝 Usage
+## 📝 使用方法
 
-1. Select or create an extraction configuration
-2. Upload PDF files (drag & drop or click to upload)
-3. Click "Process" to start extraction
-4. View results in the table
-5. Export results in your preferred format
+1. 选择或创建提取配置
+2. 上传 PDF 文件（拖放或点击上传）
+3. 点击"处理"开始提取
+4. 在表格中查看结果
+5. 以您喜欢的格式导出结果
 
-## 🎯 Default Configurations
+## 🎯 默认配置
 
-- Resume Parsing: Extract common resume fields like name, education, work experience
-- Invoice Parsing: Extract invoice details like invoice number, date, amount, etc.
+- 简历解析：提取常见简历字段，如姓名、教育经历、工作经验等
+- 发票解析：提取发票详细信息，如发票号码、日期、金额等
 
-## 💡 Inspiration
+## 💡 灵感来源
 
-This project is inspired by:
+本项目的灵感来自:
 
 - [AI 日常-PDF OCR 结构化输出](https://www.bilibili.com/video/BV1gRAweREGM/)
 - [Building PDF to Data Pipeline with Gemini](https://www.philschmid.de/gemini-pdf-to-data)
 
-## 📄 License
+## 📄 许可证
 
-MIT License - feel free to use this project for your own purposes.
+MIT 许可证 - 您可以自由使用此项目用于您自己的目的。
 
-## 🤝 Contributing
+## 🤝 贡献
 
-Contributions, issues, and feature requests are welcome!
+欢迎贡献、问题和功能请求！
 
-## 🙏 Acknowledgments
+## 🙏 致谢
 
-- [Shadcn](https://twitter.com/shadcn) for the amazing UI components
-- Google for providing the Gemini Pro API
-- The Next.js team for the awesome framework
+- [Shadcn](https://twitter.com/shadcn) 提供的优秀 UI 组件
+- Google 提供的 Gemini Pro API
+- Next.js 团队提供的出色框架
