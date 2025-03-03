@@ -252,6 +252,14 @@ export default function Page() {
     setSelectedConfig(config);
     setCurrentColumns(generateColumns(config));
 
+    // 重置文件输入框，确保用户可以再次上传相同的文件
+    const fileInput = document.getElementById(
+      "file-upload"
+    ) as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = "";
+    }
+
     // 根据参数决定是否显示提示
     if (showToast) {
       toast({
