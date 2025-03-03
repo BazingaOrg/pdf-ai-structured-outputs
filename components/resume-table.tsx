@@ -53,17 +53,14 @@ export default function ResumeTable<TData extends Record<string, any>, TValue>({
 
   const getExportFileName = () => {
     const now = new Date();
-    const timestamp = now
-      .toLocaleString("zh-CN", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      })
-      .replace(/[/\s:]/g, "");
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    const day = String(now.getDate()).padStart(2, "0");
+    const hour = String(now.getHours()).padStart(2, "0");
+    const minute = String(now.getMinutes()).padStart(2, "0");
+    const second = String(now.getSeconds()).padStart(2, "0");
+
+    const timestamp = `${year}年${month}月${day}日${hour}时${minute}分${second}秒`;
     return `简历解析结果_${timestamp}`;
   };
 
