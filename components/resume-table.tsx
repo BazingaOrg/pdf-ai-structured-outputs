@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import * as XLSX from "xlsx";
 import { Loader2, FileText, Trash2, Download } from "lucide-react";
+import { columns as defaultColumns } from "@/app/components/columns";
 
 interface ResumeTableProps<TData extends Record<string, any>, TValue> {
   columns: ColumnDef<TData, TValue>[];

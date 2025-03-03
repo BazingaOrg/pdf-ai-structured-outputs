@@ -15,6 +15,7 @@ import { defaultConfig } from "./config/default-config";
 import type { CandidateInfo, ParserConfig } from "./types";
 import { useMediaQuery } from "./hooks/use-media-query";
 import type { ColumnDef } from "@tanstack/react-table";
+import { columns as defaultColumns } from "./components/columns";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,8 +44,12 @@ export default function Page() {
   const generateColumns = (
     config: ParserConfig
   ): ColumnDef<CandidateInfo>[] => {
+    const fileNameColumn = defaultColumns.find(
+      (col) => (col as any).accessorKey === "fileName"
+    );
+
     return [
-      {
+      fileNameColumn || {
         accessorKey: "fileName",
         header: "上传文件名",
         cell: ({ row }) => (
