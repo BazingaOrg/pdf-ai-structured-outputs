@@ -12,7 +12,7 @@ import { Settings2, Plus, Calendar } from "lucide-react";
 
 interface ConfigSelectorProps {
   selectedConfig: ParserConfig;
-  onSelectConfig: (config: ParserConfig) => void;
+  onSelectConfig: (config: ParserConfig, showToast?: boolean) => void;
 }
 
 export function ConfigSelector({
@@ -28,7 +28,7 @@ export function ConfigSelector({
     } else {
       setConfigs([...configs, config]);
     }
-    onSelectConfig(config);
+    onSelectConfig(config, false);
   };
 
   return (
@@ -60,14 +60,14 @@ export function ConfigSelector({
                 transition={{ duration: 0.2 }}
               >
                 <div
-                  className={`p-4 rounded-lg border-2 transition-colors cursor-pointer hover:bg-accent ${
+                  className={`p-4 mr-4 rounded-lg border-2 transition-colors cursor-pointer hover:bg-accent relative ${
                     selectedConfig.id === config.id
                       ? "border-primary"
                       : "border-transparent"
                   }`}
-                  onClick={() => onSelectConfig(config)}
+                  onClick={() => onSelectConfig(config, true)}
                 >
-                  <div className="flex justify-between items-start">
+                  <div className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       {config.isDefault ? (
                         <Settings2 className="h-4 w-4 text-muted-foreground" />
@@ -84,7 +84,7 @@ export function ConfigSelector({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="bg-background hover:bg-secondary hover:text-secondary-foreground transition-colors"
+                          className="bg-background hover:bg-secondary hover:text-secondary-foreground transition-colors absolute top-1/2 right-4 transform -translate-y-1/2"
                         >
                           <Settings2 className="h-4 w-4" />
                         </Button>

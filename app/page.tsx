@@ -1,8 +1,8 @@
 "use client";
 
 import type { ChangeEvent, DragEvent } from "react";
-import { useState, useCallback } from "react";
-import { Upload, FileText, Trash2, MoreHorizontal, Copy } from "lucide-react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { Upload, FileText, Trash2, MoreHorizontal } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -124,84 +124,6 @@ export default function Page() {
           },
         })
       ),
-      {
-        id: "actions",
-        cell: ({ row }) => {
-          const candidate = row.original;
-
-          const copyToClipboard = useCallback(
-            (key: string) => {
-              const value = candidate[key];
-              let text = "";
-
-              // 处理不同类型的值
-              if (Array.isArray(value)) {
-                // 检查是否为对象数组
-                if (value.length > 0 && typeof value[0] === "object") {
-                  // 对于商品列表等复杂对象数组，格式化为可读文本
-                  text = value
-                    .map((item) => {
-                      return Object.entries(item)
-                        .map(([k, v]) => `${k}: ${v}`)
-                        .join(", ");
-                    })
-                    .join("\n");
-                } else {
-                  // 普通字符串数组
-                  text = value.join("、");
-                }
-              } else if (key === "date" && value) {
-                // 日期格式化
-                try {
-                  const date = new Date(value as string | number);
-                  if (!isNaN(date.getTime())) {
-                    text = date.toLocaleDateString("zh-CN");
-                  } else {
-                    text = String(value);
-                  }
-                } catch (e) {
-                  text = String(value);
-                }
-              } else {
-                // 其他类型
-                text = String(value);
-              }
-
-              navigator.clipboard.writeText(text);
-              toast({
-                title: "已复制",
-                description: `已复制${
-                  selectedConfig.fields.find((f) => f.key === key)?.name
-                }`,
-              });
-            },
-            [candidate, toast, selectedConfig.fields]
-          );
-
-          return (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="h-8 w-8 p-0">
-                  <span className="sr-only">打开菜单</span>
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>操作</DropdownMenuLabel>
-                {selectedConfig.fields.map((field) => (
-                  <DropdownMenuItem
-                    key={field.key}
-                    onClick={() => copyToClipboard(field.key)}
-                  >
-                    <Copy className="mr-2 h-4 w-4" />
-                    复制{field.name}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          );
-        },
-      },
     ];
   };
 
@@ -318,7 +240,10 @@ export default function Page() {
     setUploadedFiles((prev) => prev.filter((file) => file.id !== id));
   };
 
-  const handleSelectConfig = (config: ParserConfig) => {
+  const handleSelectConfig = (
+    config: ParserConfig,
+    showToast: boolean = true
+  ) => {
     // 清空上传的文件列表和解析结果
     setUploadedFiles([]);
     setCandidates([]);
@@ -327,10 +252,13 @@ export default function Page() {
     setSelectedConfig(config);
     setCurrentColumns(generateColumns(config));
 
-    toast({
-      title: "配置已切换",
-      description: `已切换到：${config.name}`,
-    });
+    // 根据参数决定是否显示提示
+    if (showToast) {
+      toast({
+        title: "配置已切换",
+        description: `已切换到：${config.name}`,
+      });
+    }
   };
 
   const processFiles = async () => {

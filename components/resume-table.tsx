@@ -235,7 +235,10 @@ export default function ResumeTable<TData extends Record<string, any>, TValue>({
       </div>
 
       <div className="relative overflow-hidden border rounded-md">
-        <div className="overflow-x-auto" style={{ maxHeight: "70vh" }}>
+        <div
+          className="overflow-x-auto"
+          style={{ maxHeight: "70vh", position: "relative" }}
+        >
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
