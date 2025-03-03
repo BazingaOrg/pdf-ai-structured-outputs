@@ -9,6 +9,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -89,7 +90,6 @@ export function ConfigDialog({
     const newConfig: ParserConfig = {
       id: existingConfig?.id ?? crypto.randomUUID(),
       name,
-      description: "",
       fields,
       createdAt: existingConfig?.createdAt ?? new Date(),
     };
@@ -114,6 +114,9 @@ export function ConfigDialog({
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
         <DialogHeader className="space-y-2">
           <DialogTitle>{existingConfig ? "编辑配置" : "新建配置"}</DialogTitle>
+          <DialogDescription>
+            {existingConfig ? "修改现有解析配置" : "创建新的解析配置以处理文档"}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-3">
