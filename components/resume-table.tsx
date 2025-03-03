@@ -25,6 +25,19 @@ import {
 import * as XLSX from "xlsx";
 import { Loader2, FileText, Trash2, Download } from "lucide-react";
 import { columns as defaultColumns } from "@/app/components/columns";
+import { useMemo } from "react";
+
+// 定义自定义列元数据类型
+interface CustomColumnMeta {
+  fixed?: boolean;
+  fixedIndex?: number;
+}
+
+// 扩展ColumnDef类型
+declare module "@tanstack/react-table" {
+  interface ColumnMeta<TData extends unknown, TValue>
+    extends CustomColumnMeta {}
+}
 
 interface ResumeTableProps<TData extends Record<string, any>, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -45,11 +58,45 @@ export default function ResumeTable<TData extends Record<string, any>, TValue>({
   onProcess,
   onClear,
 }: ResumeTableProps<TData, TValue>) {
+  // 处理列冻结
+  const processedColumns = useMemo(() => {
+    if (columns.length <= 3) return columns;
+
+    // 前三列设置为固定列
+    const fixedColumns = columns.slice(0, 3).map((col, index) => ({
+      ...col,
+      meta: {
+        ...col.meta,
+        fixed: true,
+        fixedIndex: index,
+      },
+    }));
+
+    // 其余列正常显示
+    const scrollColumns = columns.slice(3).map((col) => ({
+      ...col,
+      meta: {
+        ...col.meta,
+        fixed: false,
+      },
+    }));
+
+    return [...fixedColumns, ...scrollColumns];
+  }, [columns]);
+
   const table = useReactTable({
     data,
-    columns,
+    columns: processedColumns,
     getCoreRowModel: getCoreRowModel(),
   });
+
+  // 检查是否为发票解析结果
+  const isInvoice = useMemo(() => {
+    if (data.length === 0) return false;
+    // 检查第一条数据是否包含发票特有字段
+    const firstItem = data[0];
+    return "invoiceCode" in firstItem || "invoiceNumber" in firstItem;
+  }, [data]);
 
   const getExportFileName = () => {
     const now = new Date();
@@ -61,7 +108,8 @@ export default function ResumeTable<TData extends Record<string, any>, TValue>({
     const second = String(now.getSeconds()).padStart(2, "0");
 
     const timestamp = `${year}年${month}月${day}日${hour}时${minute}分${second}秒`;
-    return `简历解析结果_${timestamp}`;
+    const prefix = isInvoice ? "发票解析结果" : "简历解析结果";
+    return `${prefix}_${timestamp}`;
   };
 
   const exportData = (format: "xlsx" | "json" | "csv") => {
@@ -71,7 +119,8 @@ export default function ResumeTable<TData extends Record<string, any>, TValue>({
       case "xlsx": {
         const ws = XLSX.utils.json_to_sheet(data);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "简历解析结果");
+        const sheetName = isInvoice ? "发票解析结果" : "简历解析结果";
+        XLSX.utils.book_append_sheet(wb, ws, sheetName);
         const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
         const blob = new Blob([excelBuffer], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -185,53 +234,145 @@ export default function ResumeTable<TData extends Record<string, any>, TValue>({
         </DropdownMenu>
       </div>
 
-      <div className="overflow-x-auto rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+      <div className="relative overflow-hidden border rounded-md">
+        <div className="overflow-x-auto" style={{ maxHeight: "70vh" }}>
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => {
+                    const isFixed = header.column.columnDef.meta?.fixed;
+                    const fixedIndex = header.column.columnDef.meta
+                      ?.fixedIndex as number;
+
+                    return (
+                      <TableHead
+                        key={header.id}
+                        className={`${
+                          isFixed ? "sticky z-10 bg-background" : ""
+                        } max-w-[300px]`}
+                        style={{
+                          ...(isFixed
+                            ? {
+                                left:
+                                  fixedIndex === 0
+                                    ? 0
+                                    : fixedIndex === 1
+                                    ? "200px"
+                                    : "400px",
+                                boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+                              }
+                            : {}),
+                          whiteSpace: "nowrap",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          position: isFixed ? "sticky" : "relative",
+                        }}
+                        title={
+                          typeof header.column.columnDef.header === "string"
+                            ? header.column.columnDef.header
+                            : ""
+                        }
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
-                  暂无解析结果
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && "selected"}
+                  >
+                    {row.getVisibleCells().map((cell) => {
+                      const isFixed = cell.column.columnDef.meta?.fixed;
+                      const fixedIndex = cell.column.columnDef.meta
+                        ?.fixedIndex as number;
+
+                      return (
+                        <TableCell
+                          key={cell.id}
+                          className={`${
+                            isFixed ? "sticky z-10 bg-background" : ""
+                          } max-w-[300px]`}
+                          style={{
+                            ...(isFixed
+                              ? {
+                                  left:
+                                    fixedIndex === 0
+                                      ? 0
+                                      : fixedIndex === 1
+                                      ? "200px"
+                                      : "400px",
+                                  boxShadow: "2px 0 5px rgba(0,0,0,0.1)",
+                                }
+                              : {}),
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            position: isFixed ? "sticky" : "relative",
+                          }}
+                          title={
+                            // 获取单元格内容的文本表示，用于tooltip
+                            (() => {
+                              const value = cell.getValue();
+                              if (value === null || value === undefined)
+                                return "";
+                              if (Array.isArray(value)) {
+                                if (
+                                  value.length > 0 &&
+                                  typeof value[0] === "object"
+                                ) {
+                                  return value
+                                    .map((item) =>
+                                      Object.entries(item)
+                                        .map(([k, v]) => `${k}: ${v}`)
+                                        .join(", ")
+                                    )
+                                    .join("\n");
+                                }
+                                return value.join("、");
+                              }
+                              return String(value);
+                            })()
+                          }
+                        >
+                          {cell.getValue() === null ||
+                          cell.getValue() === undefined ? (
+                            <span className="text-muted-foreground">-</span>
+                          ) : (
+                            flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext()
+                            )
+                          )}
+                        </TableCell>
+                      );
+                    })}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell
+                    colSpan={columns.length}
+                    className="h-24 text-center"
+                  >
+                    暂无解析结果
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     </div>
   );

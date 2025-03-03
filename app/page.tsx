@@ -65,10 +65,62 @@ export default function Page() {
           header: field.name,
           cell: ({ row }) => {
             const value = row.getValue(field.key);
-            if (Array.isArray(value)) {
-              return <div>{value.join("、")}</div>;
+
+            // 处理不同类型的值
+            if (value === null || value === undefined) {
+              return <div className="text-muted-foreground">-</div>;
             }
-            return <div>{String(value)}</div>;
+
+            // 处理数组类型
+            if (Array.isArray(value)) {
+              // 检查数组元素是否为对象
+              if (value.length > 0 && typeof value[0] === "object") {
+                // 对于商品列表等复杂对象数组，显示更友好的格式
+                return (
+                  <div className="max-w-full">
+                    {value.map((item, index) => (
+                      <div key={index} className="mb-1 text-sm truncate">
+                        {Object.entries(item).map(([key, val], i) => (
+                          <span key={key} className="mr-1">
+                            <span className="font-medium">{key}:</span>
+                            <span>{String(val)}</span>
+                            {i < Object.entries(item).length - 1 ? ", " : ""}
+                          </span>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                );
+              }
+              // 普通字符串数组
+              return <div className="truncate">{value.join("、")}</div>;
+            }
+
+            // 处理日期类型
+            if (field.type === "date" && value) {
+              try {
+                const date = new Date(value as string | number);
+                if (!isNaN(date.getTime())) {
+                  return (
+                    <div className="truncate">
+                      {date.toLocaleDateString("zh-CN")}
+                    </div>
+                  );
+                }
+              } catch (e) {
+                // 如果日期解析失败，回退到显示原始值
+              }
+            }
+
+            // 处理数字类型
+            if (field.type === "number" && typeof value === "number") {
+              return (
+                <div className="truncate">{value.toLocaleString("zh-CN")}</div>
+              );
+            }
+
+            // 默认情况：显示为字符串
+            return <div className="truncate">{String(value)}</div>;
           },
         })
       ),
@@ -80,9 +132,41 @@ export default function Page() {
           const copyToClipboard = useCallback(
             (key: string) => {
               const value = candidate[key];
-              const text = Array.isArray(value)
-                ? value.join("、")
-                : String(value);
+              let text = "";
+
+              // 处理不同类型的值
+              if (Array.isArray(value)) {
+                // 检查是否为对象数组
+                if (value.length > 0 && typeof value[0] === "object") {
+                  // 对于商品列表等复杂对象数组，格式化为可读文本
+                  text = value
+                    .map((item) => {
+                      return Object.entries(item)
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join(", ");
+                    })
+                    .join("\n");
+                } else {
+                  // 普通字符串数组
+                  text = value.join("、");
+                }
+              } else if (key === "date" && value) {
+                // 日期格式化
+                try {
+                  const date = new Date(value as string | number);
+                  if (!isNaN(date.getTime())) {
+                    text = date.toLocaleDateString("zh-CN");
+                  } else {
+                    text = String(value);
+                  }
+                } catch (e) {
+                  text = String(value);
+                }
+              } else {
+                // 其他类型
+                text = String(value);
+              }
+
               navigator.clipboard.writeText(text);
               toast({
                 title: "已复制",
@@ -163,6 +247,48 @@ export default function Page() {
       return;
     }
 
+    // 检查文件名重复
+    const existingFileNames = uploadedFiles.map((item) => item.file.name);
+    const duplicateFiles = pdfFiles.filter((file) =>
+      existingFileNames.includes(file.name)
+    );
+
+    // 如果有重复文件名，提示用户
+    if (duplicateFiles.length > 0) {
+      toast({
+        variant: "destructive",
+        title: "文件名重复",
+        description: `以下文件名已存在：${duplicateFiles
+          .map((f) => f.name)
+          .join(", ")}`,
+      });
+
+      // 过滤掉重复文件名的文件
+      const uniqueFiles = pdfFiles.filter(
+        (file) => !existingFileNames.includes(file.name)
+      );
+
+      // 如果没有唯一文件，直接返回
+      if (uniqueFiles.length === 0) {
+        return;
+      }
+
+      // 更新pdfFiles为唯一文件列表
+      const newFiles = uniqueFiles.map((file) => ({
+        file,
+        id: crypto.randomUUID(),
+      }));
+
+      setUploadedFiles((prev) => [...prev, ...newFiles]);
+
+      toast({
+        title: "文件已添加",
+        description: `成功添加 ${uniqueFiles.length} 个文件，已跳过 ${duplicateFiles.length} 个重复文件`,
+      });
+      return;
+    }
+
+    // 如果没有重复文件名，正常添加所有文件
     const newFiles = pdfFiles.map((file) => ({
       file,
       id: crypto.randomUUID(),
@@ -193,8 +319,18 @@ export default function Page() {
   };
 
   const handleSelectConfig = (config: ParserConfig) => {
+    // 清空上传的文件列表和解析结果
+    setUploadedFiles([]);
+    setCandidates([]);
+
+    // 更新选中的配置和列
     setSelectedConfig(config);
     setCurrentColumns(generateColumns(config));
+
+    toast({
+      title: "配置已切换",
+      description: `已切换到：${config.name}`,
+    });
   };
 
   const processFiles = async () => {
