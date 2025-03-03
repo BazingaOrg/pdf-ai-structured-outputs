@@ -224,7 +224,26 @@ export default function Page() {
 
         if (!response.ok) {
           const errorData = await response.json();
-          throw new Error(errorData.details || "处理 PDF 失败");
+          console.error("API错误详情:", errorData);
+
+          // 提取更详细的错误信息
+          let errorMessage = errorData.details || "处理 PDF 失败";
+
+          // 如果有原始响应，检查是否包含有用信息
+          if (errorData.rawResponse) {
+            // 尝试从原始响应中提取有用信息
+            const usefulInfo = errorData.rawResponse.includes("扫描版PDF")
+              ? "这可能是扫描版PDF，无法直接提取文本。请使用包含可提取文本的PDF文件。"
+              : errorData.rawResponse.includes("二进制数据")
+              ? "PDF内容无法正确解析，请确保上传的是文本PDF而非扫描版。"
+              : null;
+
+            if (usefulInfo) {
+              errorMessage = usefulInfo;
+            }
+          }
+
+          throw new Error(errorMessage);
         }
 
         const data = await response.json();

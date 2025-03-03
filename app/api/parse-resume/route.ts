@@ -17,15 +17,11 @@ export async function POST(request: NextRequest) {
       return new Response("No PDF file provided", { status: 400 });
     }
 
-    // Initialize Gemini API with environment variable and proxy settings
+    // Initialize Gemini API
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
     const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-    // Convert File to Uint8Array
-    const buffer = await pdfFile.arrayBuffer();
-    const pdfText = await extractTextFromPDF(buffer);
-
-    // Generate prompt based on config fields
+    // 生成字段描述
     const fieldsDescription = config.fields
       .map((field) => {
         const typeDesc = field.type === "string[]" ? "数组" : "文本";
@@ -33,48 +29,122 @@ export async function POST(request: NextRequest) {
       })
       .join("\n");
 
+    // 准备提示词
     const prompt = `请分析这份简历并提取以下信息，以JSON格式返回：
 
 字段说明：
 ${fieldsDescription}
 
-简历内容：
-${pdfText}
+请确保返回的JSON格式正确，且包含所有必需字段。对于数组类型，请使用数组格式返回。
+重要：请只返回JSON格式的数据，不要添加任何额外的解释或分析。`;
 
-请确保返回的JSON格式正确，且包含所有必需字段。对于数组类型，请使用数组格式返回。`;
+    // 准备PDF文件数据
+    const fileBytes = await pdfFile.arrayBuffer();
+    const fileData = {
+      inlineData: {
+        data: Buffer.from(fileBytes).toString("base64"),
+        mimeType: pdfFile.type,
+      },
+    };
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    // 创建响应模式
+    const responseSchema: {
+      type: string;
+      properties: Record<string, any>;
+    } = {
+      type: "object",
+      properties: {},
+    };
 
-    // Try to parse and validate the response
+    // 根据配置字段动态构建响应模式
+    for (const field of config.fields) {
+      if (field.type === "string[]") {
+        responseSchema.properties[field.key] = {
+          type: "array",
+          items: { type: "string" },
+          description: field.description,
+        };
+      } else {
+        responseSchema.properties[field.key] = {
+          type: "string",
+          description: field.description,
+        };
+      }
+    }
+
+    // 发送请求到Gemini
     try {
-      const cleanedText = text.replace(/```json\n?|\n?```/g, "").trim();
-      const jsonResponse = JSON.parse(cleanedText);
+      // 使用基本的API调用方式
+      const result = await model.generateContent([{ text: prompt }, fileData]);
 
-      return new Response(JSON.stringify(jsonResponse), {
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (parseError) {
-      console.error("Error parsing Gemini response:", parseError);
+      const response = await result.response;
+      const text = response.text();
+
+      // 尝试解析JSON响应
+      try {
+        // 如果响应已经是JSON格式，直接解析
+        const jsonResponse = JSON.parse(text);
+        return new Response(JSON.stringify(jsonResponse), {
+          headers: { "Content-Type": "application/json" },
+        });
+      } catch (parseError) {
+        console.error("Error parsing Gemini response:", parseError);
+
+        // 尝试从响应中提取JSON部分
+        try {
+          // 首先尝试查找```json和```之间的内容
+          let jsonContent = text;
+          const jsonBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+
+          if (jsonBlockMatch && jsonBlockMatch[1]) {
+            // 如果找到了代码块，使用代码块中的内容
+            jsonContent = jsonBlockMatch[1].trim();
+          } else {
+            // 否则尝试查找第一个有效的JSON对象
+            const possibleJsonMatch = text.match(/(\{[\s\S]*\})/);
+            if (possibleJsonMatch && possibleJsonMatch[1]) {
+              jsonContent = possibleJsonMatch[1].trim();
+            }
+          }
+
+          // 尝试解析JSON
+          const jsonResponse = JSON.parse(jsonContent);
+          return new Response(JSON.stringify(jsonResponse), {
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (extractError) {
+          // 如果无法提取JSON，返回原始错误
+          return new Response(
+            JSON.stringify({
+              error: "Invalid response format",
+              details: "The AI response could not be parsed correctly",
+              rawResponse: text,
+            }),
+            {
+              status: 422,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+        }
+      }
+    } catch (modelError: any) {
+      console.error("Gemini model error:", modelError);
       return new Response(
         JSON.stringify({
-          error: "Invalid response format",
-          details: "The AI response could not be parsed correctly",
-          rawResponse: text,
+          error: "Model processing error",
+          details: modelError.message || "Error processing with Gemini model",
         }),
         {
-          status: 422,
+          status: 500,
           headers: { "Content-Type": "application/json" },
         }
       );
     }
   } catch (error: any) {
-    console.error("Gemini API Error:", {
+    console.error("API Error:", {
       message: error.message,
       status: error.status,
       details: error.details,
-      response: error.response,
     });
     return new Response(
       JSON.stringify({
@@ -89,19 +159,4 @@ ${pdfText}
       }
     );
   }
-}
-
-// 添加 PDF 文本提取函数
-async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
-  // 由于我们使用AI来解析PDF，这里直接将PDF内容转换为base64字符串
-  // 这样可以在不使用额外库的情况下处理PDF
-  const uint8Array = new Uint8Array(buffer);
-  let binary = "";
-  for (let i = 0; i < uint8Array.byteLength; i++) {
-    binary += String.fromCharCode(uint8Array[i]);
-  }
-
-  // 返回PDF的前10KB内容作为文本样本
-  // 这是一个简化处理，实际上AI可以直接处理完整的PDF
-  return binary.slice(0, 10240);
 }
