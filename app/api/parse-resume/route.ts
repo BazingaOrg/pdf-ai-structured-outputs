@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
 
     // Initialize Gemini API with environment variable and proxy settings
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY!);
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
     // Convert File to Uint8Array
     const buffer = await pdfFile.arrayBuffer();
